@@ -17,7 +17,7 @@ const app = express();
 app.use(express.json()); // must come before routes
 app.use(
   cors({
-    origin: "http://localhost:3000", // frontend URL
+    origin: "https://ak-visuals-frontend.vercel.app", // frontend URL
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
