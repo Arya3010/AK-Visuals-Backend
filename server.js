@@ -54,5 +54,13 @@ app.get("/api/admin/bookings", verifyAdmin, async (req, res) => {
 });
 
 // ✅ Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// Use the hosting environment's PORT variable.
+// Render automatically sets this, but it may not be 5000.
+const PORT = process.env.PORT; 
+
+// A small check to prevent the server from trying to listen on an undefined port if testing locally
+if (!PORT) {
+    console.error("❌ PORT environment variable is not set. Using 5000 as fallback for local testing.");
+}
+
+app.listen(PORT || 5000, () => console.log(`🚀 Server running on port ${PORT || 5000}`));
