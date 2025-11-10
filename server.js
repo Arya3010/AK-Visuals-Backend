@@ -17,11 +17,17 @@ const app = express();
 app.use(express.json()); // must come before routes
 app.use(
   cors({
-    origin: "https://ak-visuals-frontend.vercel.app", // frontend URL
+    origin: ["https://ak-visuals-frontend.vercel.app", "http://localhost:3000"], // frontend URL
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
+
+app.options('*', cors({
+    origin: ["https://ak-visuals-frontend.vercel.app", "http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+}));
 
 // ✅ MongoDB connection
 mongoose
