@@ -13,33 +13,25 @@ dotenv.config();
 
 const app = express();
 
-// ✅ CORS Configuration
-const allowedOrigins = [
-  "http://localhost:3000", // Local frontend (for development)
-  "https://ak-visuals-frontend.vercel.app", // Deployed frontend
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin like mobile apps or curl requests
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-
-// Handle preflight requests explicitly
-app.options("*", cors());
-
 // ✅ Middleware
 app.use(express.json());
+
+// ✅ CORS setup (Express 5 safe)
+const corsOptions = {
+  origin: [
+    "http://localhost:3000",
+    "https://ak-visuals-frontend.onrender.com", // Add your frontend deployed link here
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+app.use(cors(corsOptions)); // ✅ handles preflight automatically
+
+// ✅ Test route for CORS
+app.get("/test-cors", (req, res) => {
+  res.json({ message: "CORS works!" });
+});
 
 // ✅ MongoDB connection
 mongoose
@@ -50,24 +42,23 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.log("❌ MongoDB connection error:", err));
 
-// ✅ Routes
+// ✅ Root route
 app.get("/", (req, res) => {
   res.send("🚀 AKVisuals backend is running...");
 });
 
-app.get("/test-cors", (req, res) => {
-  res.json({ message: "CORS working fine!" });
-});
-
+// ✅ Main API routes
 app.use("/api/photos", photoRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 
+// ✅ Protected Admin Bookings Route
 app.get("/api/admin/bookings", verifyAdmin, async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ createdAt: -1 });
     res.status(200).json(bookings);
   } catch (error) {
+    console.error("❌ Error fetching bookings:", error);
     res.status(500).json({ message: "Server error fetching bookings." });
   }
 });
