@@ -13,35 +13,33 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Middleware
-app.use(express.json());
+// ✅ CORS Configuration
+const allowedOrigins = [
+  "http://localhost:3000", // Local frontend (for development)
+  "https://ak-visuals-frontend.vercel.app", // Deployed frontend
+];
 
-// ✅ CORS setup (Express 5-safe)
 app.use(
   cors({
-    origin: "http://localhost:3000" || "https://ak-visuals-backend.onrender.com" ,
+    origin: function (origin, callback) {
+      // allow requests with no origin like mobile apps or curl requests
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-// ✅ Handle preflight OPTIONS requests manually
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:3000");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// Handle preflight requests explicitly
+app.options("*", cors());
 
-// ✅ Test CORS route
-app.get("/test-cors", (req, res) => {
-  res.json({ message: "CORS works!" });
-});
+// ✅ Middleware
+app.use(express.json());
 
 // ✅ MongoDB connection
 mongoose
@@ -52,30 +50,26 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.log("❌ MongoDB connection error:", err));
 
-// ✅ Root route
+// ✅ Routes
 app.get("/", (req, res) => {
   res.send("🚀 AKVisuals backend is running...");
 });
 
-// ✅ Routes
+app.get("/test-cors", (req, res) => {
+  res.json({ message: "CORS working fine!" });
+});
+
 app.use("/api/photos", photoRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 
-// ✅ Protected Admin Bookings Route
 app.get("/api/admin/bookings", verifyAdmin, async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ createdAt: -1 });
     res.status(200).json(bookings);
   } catch (error) {
-    console.error("❌ Error fetching bookings:", error);
     res.status(500).json({ message: "Server error fetching bookings." });
   }
-});
-
-// ✅ Fallback route
-app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
 });
 
 // ✅ Start server
