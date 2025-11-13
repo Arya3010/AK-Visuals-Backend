@@ -14,20 +14,34 @@ dotenv.config();
 const app = express();
 
 // ✅ Middleware
-app.use(express.json()); // must come before routes
+app.use(express.json());
+
+// ✅ CORS setup (Express 5-safe)
 app.use(
   cors({
-    origin: ["https://ak-visuals-frontend.vercel.app", "http://localhost:3000"], // frontend URL
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: "http://localhost:3000" || "https://ak-visuals-backend.onrender.com" ,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-app.options('*', cors({
-    origin: ["https://ak-visuals-frontend.vercel.app", "http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-}));
+// ✅ Handle preflight OPTIONS requests manually
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// ✅ Test CORS route
+app.get("/test-cors", (req, res) => {
+  res.json({ message: "CORS works!" });
+});
 
 // ✅ MongoDB connection
 mongoose
@@ -38,12 +52,12 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.log("❌ MongoDB connection error:", err));
 
-// ✅ Basic test route
+// ✅ Root route
 app.get("/", (req, res) => {
   res.send("🚀 AKVisuals backend is running...");
 });
 
-// ✅ Main Routes
+// ✅ Routes
 app.use("/api/photos", photoRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
@@ -59,14 +73,11 @@ app.get("/api/admin/bookings", verifyAdmin, async (req, res) => {
   }
 });
 
+// ✅ Fallback route
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
 // ✅ Start server
-// Use the hosting environment's PORT variable.
-// Render automatically sets this, but it may not be 5000.
-const PORT = process.env.PORT; 
-
-// A small check to prevent the server from trying to listen on an undefined port if testing locally
-if (!PORT) {
-    console.error("❌ PORT environment variable is not set. Using 5000 as fallback for local testing.");
-}
-
-app.listen(PORT || 5000, () => console.log(`🚀 Server running on port ${PORT || 5000}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
